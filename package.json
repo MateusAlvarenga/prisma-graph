@@ -1,0 +1,25 @@
+{
+  "name": "prisma-graph",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "parser": "node parser.js",
+    "graph": "node graph.js",
+    "queryBuilder": "node queryBuilder.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prisma": "^5.13.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.13.0",
+    "canvas": "^2.11.2",
+    "ngraph.graph": "^20.0.1",
+    "ngraph.path": "^1.5.0",
+    "ngraph.pixel": "^2.4.1"
+  }
+}
