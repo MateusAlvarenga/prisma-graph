@@ -3,13 +3,9 @@ const graph = createGraph();
 const schema = require('./schema.json');
 const pathFinder = require('ngraph.path');
 const fs = require('fs');
-// const { promisify } = require('util');
-// const writeFile = promisify(fs.writeFile);
-// const takeShot = require('ngraph.takeshot');
 
-const startTable = "meter_list";
-const endTable = "device_config_detail";
-
+const startTable = "User";
+const endTable = "Comment";
 
 // Iterate over each model
 schema.forEach(model => {
@@ -22,59 +18,64 @@ schema.forEach(model => {
         const fieldType = field.type;
 
         // Add node for field
-        graph.addNode(`${modelName}.${fieldName}`);
+        //graph.addNode(`${modelName}.${fieldName}`);
 
         // Add edge for field reference
         if (field.references && field.references !== "") {
-            graph.addLink(modelName, field.references);
+            graph.addLink(modelName, fieldType, { "reference": field });
         }
     });
 });
 
+console.log("Graph: ");
+// Log all nodes from the graph
+graph.forEachNode(node => {
+    console.log(node.id);
+});
+console.log("Links: ");
+// Log all links from the graph
+graph.forEachLink(link => {
+    console.log(`${link.fromId} -> ${link.toId}`);
+});
 
-// // Generate a PNG image
-// takeShot.toDataURL(graph, {
-//     layout: layout,
-//     node: node => ({ width: 10, height: 10 }),
-//     link: () => ({ width: 1 }),
-// }).then(async url => {
-//     console.log('PNG URL:', url);
-//     // Save the image to a file
-//     try {
-//         await writeFile('graph.png', Buffer.from(url.split(',')[1], 'base64'));
-//         console.log('Image saved as graph.png');
-//     } catch (err) {
-//         console.error('Error saving image:', err);
-//     }
-// });
+
+
 
 function buildSqlStatement(startTable, endTable, shortestPath, schema) {
-    let sqlStatement = `SELECT * FROM ${startTable} `;
-    for (let i = 0; i < shortestPath.length - 1; i++) {
-        const currentNode = shortestPath[i].id;
-        const nextNode = shortestPath[i + 1].id;
 
-        // Find the relationship between the current node and the next node
-        const currentModel = schema.find(model => model.name === currentNode);
-        if (!currentModel) {
-            console.error(`Model ${currentNode} not found in schema`);
-            continue;
-        }
+    let tables_to_join = shortestPath.slice(1);
+    let tables_to_join_id = tables_to_join.map((node) => node.id);
+    let sqlStatement = `SELECT * FROM ${startTable}`;
+    let currentTable = startTable;
 
-        const nextField = currentModel.fields.find(field => field.references && field.references.split('.')[0] === nextNode);
+    tables_to_join_id.forEach((table_id) => {
 
-        if (nextField) {
-            sqlStatement += `JOIN ${nextNode} ON ${currentNode}.${nextField.name} = ${nextNode}.${nextField.references.split('.')[1]} `;
-        }
-    }
+        let link = graph.getLink(table_id, currentTable);
+        let reference = link.data.reference;
+
+        sqlStatement += ` JOIN ${table_id} ON  ${reference.references} = ${reference.name}`;
+
+        currentTable = table_id;
+    });
+
+
 
     return sqlStatement.trim();
 }
 
+
 // Perform path finding
 const pathFinderInstance = pathFinder.aStar(graph);
 // Find shortest path
-const shortestPath = pathFinderInstance.find(startTable, endTable);
+const shortestPath = pathFinderInstance.find(endTable, startTable);
+// Log the shortestPath nodes
+console.log("Shortest Path Nodes: ");
+shortestPath.forEach(node => {
+    console.log(node.id);
+    node.links.forEach(link => {
+        console.log(link);
+    });
+});
 
 // Construct and log SQL statements for the shortest path
 const sqlStatement = buildSqlStatement(startTable, endTable, shortestPath, schema);

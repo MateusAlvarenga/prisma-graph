@@ -20,14 +20,13 @@ while ((match = modelRegex.exec(schemaPull)) !== null) {
 
 
         type = type?.replace(/[\[\]?]/g, '');
+        let references = field.match(fieldRegex);
 
-        if (!knownTypes.includes(type)) {
-
-            let references = field.match(fieldRegex);
-            references = references ? references[1] : [];
-            return { name, type, references };
+        if (!knownTypes.includes(type) && references?.length > 0) {
+            return { name, type, references: references[1] };
+        } if (attributes.some((e) => "@id" === e)) {
+            return { name, type, "primaryKey": true }
         } else {
-
             return { name, type };
         }
 
