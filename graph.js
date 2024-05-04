@@ -21,8 +21,8 @@ schema.forEach(model => {
         //graph.addNode(`${modelName}.${fieldName}`);
 
         // Add edge for field reference
-        if (field.references && field.references !== "") {
-            graph.addLink(modelName, fieldType, { "reference": field });
+        if (field.relation) {
+            graph.addLink(modelName, fieldType, { "field": field });
         }
     });
 });
@@ -51,9 +51,9 @@ function buildSqlStatement(startTable, endTable, shortestPath, schema) {
     tables_to_join_id.forEach((table_id) => {
 
         let link = graph.getLink(table_id, currentTable);
-        let reference = link.data.reference;
+        let field = link.data.field;
 
-        sqlStatement += ` JOIN ${table_id} ON  ${reference.references} = ${reference.name}`;
+        sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
 
         currentTable = table_id;
     });

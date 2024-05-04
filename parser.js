@@ -6,6 +6,7 @@ const schemaPull = fs.readFileSync('./prisma/schema.prisma', 'utf-8');
 // Regular expression to match model definitions
 const modelRegex = /model (\w+) {(.*?)}/gs;
 const fieldRegex = /fields: \[(.*?)\]/;
+const referencesRegex = /references: \[(.*?)\]/;
 const models = [];
 const knownTypes = ['Int', 'String', 'Boolean', 'DateTime', 'Decimal', 'Float', 'Bytes', 'BigInt'];
 
@@ -20,10 +21,17 @@ while ((match = modelRegex.exec(schemaPull)) !== null) {
 
 
         type = type?.replace(/[\[\]?]/g, '');
-        let references = field.match(fieldRegex);
 
-        if (!knownTypes.includes(type) && references?.length > 0) {
-            return { name, type, references: references[1] };
+        if (!knownTypes.includes(type) && field.includes('@relation')) {
+            let fields = field.match(fieldRegex);
+            let references = field.match(referencesRegex);
+            let relation = {
+                fields: fields[1],
+                references: references[1]
+            };
+
+
+            return { name, type, relation };
         } if (attributes.some((e) => "@id" === e)) {
             return { name, type, "primaryKey": true }
         } else {
