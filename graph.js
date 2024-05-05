@@ -1,98 +1,85 @@
 const createGraph = require('ngraph.graph');
-const graph = createGraph();
 const schema = require('./schema.json');
 const pathFinder = require('ngraph.path');
 const fs = require('fs');
+const graph = createGraph();
 
-const startTable = "Like";
-const endTable = "User";
 
-// Iterate over each model
-schema.forEach(model => {
-    const modelName = model.name;
-    graph.addNode(modelName);
+function mountGraph(startTable, endTable) {
 
-    // Iterate over each field in the model
-    model.fields.forEach(field => {
-        const fieldName = field.name;
-        const fieldType = field.type;
+    schema.forEach(model => {
+        const modelName = model.name;
+        graph.addNode(modelName);
 
-        // Add node for field
-        //graph.addNode(`${modelName}.${fieldName}`);
+        model.fields.forEach(field => {
+            const fieldName = field.name;
+            const fieldType = field.type;
 
-        // Add edge for field reference
-        if (field.relation) {
-            graph.addLink(modelName, fieldType, { "field": field });
-        }
+
+            if (field.relation) {
+                graph.addLink(modelName, fieldType, { "field": field });
+            }
+        });
     });
-});
 
-console.log("Graph: ");
-// Log all nodes from the graph
-graph.forEachNode(node => {
-    console.log(node.id);
-});
-console.log("Links: ");
-// Log all links from the graph
-graph.forEachLink(link => {
-    console.log(`${link.fromId} -> ${link.toId}`);
-});
+    console.log("Graph: ");
+    graph.forEachNode(node => {
+        console.log(node.id);
+    });
+    console.log("Links: ");
+    graph.forEachLink(link => {
+        console.log(`${link.fromId} -> ${link.toId}`);
+    });
 
+    function buildSqlStatement(startTable, endTable, shortestPath, schema) {
 
+        let tables_to_join = shortestPath.slice(1);
+        let tables_to_join_id = tables_to_join.map((node) => node.id);
+        let sqlStatement = `SELECT * FROM ${startTable}`;
+        let currentTable = startTable;
 
+        tables_to_join_id.forEach((table_id) => {
 
-function buildSqlStatement(startTable, endTable, shortestPath, schema) {
-
-    let tables_to_join = shortestPath.slice(1);
-    let tables_to_join_id = tables_to_join.map((node) => node.id);
-    let sqlStatement = `SELECT * FROM ${startTable}`;
-    let currentTable = startTable;
-
-    tables_to_join_id.forEach((table_id) => {
-
-        let link = graph.getLink(table_id, currentTable);
-        if (link) {
-            let field = link.data.field;
-            sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
-        } else {
-            link = graph.getLink(currentTable, table_id);
+            let link = graph.getLink(table_id, currentTable);
             if (link) {
                 let field = link.data.field;
-                sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.references} = ${currentTable}.${field.relation.fields}`;
+                sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
             } else {
-                throw new Error(`Link not found between ${table_id} and ${currentTable}`);
+                link = graph.getLink(currentTable, table_id);
+                if (link) {
+                    let field = link.data.field;
+                    sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.references} = ${currentTable}.${field.relation.fields}`;
+                } else {
+                    throw new Error(`Link not found between ${table_id} and ${currentTable}`);
+                }
             }
-        }
 
-        currentTable = table_id;
+            currentTable = table_id;
+        });
+
+
+
+        return sqlStatement.trim();
+    }
+
+    const pathFinderInstance = pathFinder.aStar(graph);
+    const shortestPath = pathFinderInstance.find(endTable, startTable);
+    console.log("Shortest Path Nodes: ");
+    shortestPath.forEach(node => {
+        console.log(node.id);
+        node.links.forEach(link => {
+            console.log(link);
+            console.log(link.data.field.relation)
+        });
     });
 
+    if (shortestPath.length === 0) {
+        throw new Error(`Unreachable: No path found between ${startTable} and ${endTable}`);
+    }
 
+    const sqlStatement = buildSqlStatement(startTable, endTable, shortestPath, schema);
+    console.log(`Path: ${sqlStatement}`);
 
-    return sqlStatement.trim();
 }
 
-
-// Perform path finding
-const pathFinderInstance = pathFinder.aStar(graph);
-// Find shortest path
-const shortestPath = pathFinderInstance.find(endTable, startTable);
-// Log the shortestPath nodes
-console.log("Shortest Path Nodes: ");
-shortestPath.forEach(node => {
-    console.log(node.id);
-    node.links.forEach(link => {
-        console.log(link);
-        console.log(link.data.field.relation)
-    });
-});
-
-// Construct and log SQL statements for the shortest path
-
-if (shortestPath.length === 0) {
-    throw new Error(`Unreachable: No path found between ${startTable} and ${endTable}`);
-}
-
-const sqlStatement = buildSqlStatement(startTable, endTable, shortestPath, schema);
-console.log(`Path: ${sqlStatement}`);
-
+module.exports = mountGraph;

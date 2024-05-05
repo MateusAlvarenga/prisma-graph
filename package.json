@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "node test.js",
-    "parser": "node parser.js",
     "graph": "node graph.js",
     "queryBuilder": "node queryBuilder.js",
     "push": "prisma db push"
@@ -21,6 +21,7 @@
     "canvas": "^2.11.2",
     "ngraph.graph": "^20.0.1",
     "ngraph.path": "^1.5.0",
-    "ngraph.pixel": "^2.4.1"
+    "ngraph.pixel": "^2.4.1",
+    "terminal-kit": "^3.1.1"
   }
 }
