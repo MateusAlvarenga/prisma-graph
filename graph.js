@@ -4,8 +4,8 @@ const schema = require('./schema.json');
 const pathFinder = require('ngraph.path');
 const fs = require('fs');
 
-const startTable = "User";
-const endTable = "Comment";
+const startTable = "Like";
+const endTable = "User";
 
 // Iterate over each model
 schema.forEach(model => {
@@ -51,9 +51,18 @@ function buildSqlStatement(startTable, endTable, shortestPath, schema) {
     tables_to_join_id.forEach((table_id) => {
 
         let link = graph.getLink(table_id, currentTable);
-        let field = link.data.field;
-
-        sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
+        if (link) {
+            let field = link.data.field;
+            sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
+        } else {
+            link = graph.getLink(currentTable, table_id);
+            if (link) {
+                let field = link.data.field;
+                sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.references} = ${currentTable}.${field.relation.fields}`;
+            } else {
+                throw new Error(`Link not found between ${table_id} and ${currentTable}`);
+            }
+        }
 
         currentTable = table_id;
     });
@@ -74,10 +83,16 @@ shortestPath.forEach(node => {
     console.log(node.id);
     node.links.forEach(link => {
         console.log(link);
+        console.log(link.data.field.relation)
     });
 });
 
 // Construct and log SQL statements for the shortest path
+
+if (shortestPath.length === 0) {
+    throw new Error(`Unreachable: No path found between ${startTable} and ${endTable}`);
+}
+
 const sqlStatement = buildSqlStatement(startTable, endTable, shortestPath, schema);
 console.log(`Path: ${sqlStatement}`);
 
