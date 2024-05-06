@@ -14,17 +14,39 @@ class FieldType(enum.Enum):
     ACTION_INSTANCE = "action_instance"
 
 
+def is_foreign_key(column, foreign_keys):
+    for fk in foreign_keys:
+        if column["name"] in fk["constrained_columns"]:
+            return True
+    return False
+
+
+def get_foreign_key(column, foreign_keys):
+    for fk in foreign_keys:
+        if column["name"] in fk["constrained_columns"]:
+            return fk
+    return None
+
+
 def build_json_schema(columns, table_name, inspector):
     schema = {
         "name": table_name,
         "fields": []
     }
+
+    foreign_keys = inspector.get_foreign_keys(table_name)
+
     for column in columns:
         field_schema = {
             "name": column["name"],
             "type": str(column["type"]).upper(),
         }
-        if "foreign_keys" in column:
+        if is_foreign_key(column, foreign_keys):
+
+            fk = get_foreign_key(column, foreign_keys)
+
+            field_schema["type"] = fk["referred_table"]
+
             field_schema["relation"] = {
                 "fields": column["name"],
                 "references": inspector.get_foreign_keys(table_name)[0]["referred_columns"][0]
@@ -35,12 +57,16 @@ def build_json_schema(columns, table_name, inspector):
 
 def introspect_all_tables(engine):
     inspector = inspect(engine)
+    content = []
     for table_name in inspector.get_table_names():
         columns = inspector.get_columns(table_name)
         json_schema = build_json_schema(columns, table_name, inspector)
-        with open(f"{table_name}.json", "w") as outfile:
-            json.dump(json_schema, outfile, indent=4)
-        print(f"JSON schema for table {table_name} saved to {table_name}.json")
+        content.append(json_schema)
+
+    with open("schema2.json", "w") as outfile:
+        json.dump(content, outfile, indent=4)
+
+    print("JSON schema for all tables saved to schema.json")
 
 
 load_dotenv()

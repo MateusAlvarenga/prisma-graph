@@ -4,3 +4,4 @@ node_modules
 
 *.prisma
 schema.json
+schema2.json
