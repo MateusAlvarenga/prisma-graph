@@ -1,7 +1,21 @@
 const graph = require('./graph');
+const { terminal } = require('terminal-kit');
 
-const startTable = 'startTable';
-const endTable = 'endTable';
+async function runSearch() {
+    terminal.clear();
 
-const result = graph.shortestPath(startTable, endTable);
-console.log(result);
+    while (true) {
+        terminal(`Please enter startTable:\n`);
+        const startTable = await terminal.inputField().promise;
+        terminal('\n');
+        terminal(`Please enter endTable:\n`);
+        const endTable = await terminal.inputField('endTable:').promise;
+        terminal('\n');
+
+        const result = graph(startTable, endTable);
+        console.log(result);
+        terminal('\n');
+    }
+}
+
+runSearch();

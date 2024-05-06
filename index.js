@@ -2,10 +2,13 @@ const { terminal } = require('terminal-kit');
 const parser = require('./parser');
 const mountGraph = require('./graph');
 const readline = require('readline');
+const { listModels, searchModel } = require('./listModels');
 
 const options = [
     'Parser',
-    'Search',
+    'Search Path',
+    'List Models',
+    'Search Model',
     'Exit'
 ];
 
@@ -20,7 +23,7 @@ function displayMenu() {
             case 'Parser':
                 await runWithProgressBar(parser);
                 break;
-            case 'Search':
+            case 'Search path':
                 terminal(`Please enter startTable:\n`);
                 let startTable = await terminal.inputField().promise;
                 terminal('\n');
@@ -28,6 +31,15 @@ function displayMenu() {
                 let endTable = await terminal.inputField().promise;
                 terminal('\n');
                 await runWithProgressBar(() => mountGraph(startTable, endTable));
+                break;
+            case 'Search Model':
+                terminal(`Please enter model name:\n`);
+                let modelName = await terminal.inputField().promise;
+                terminal('\n');
+                await runWithProgressBar(() => searchModel(modelName));
+                break;
+            case 'List Models':
+                await runWithProgressBar(listModels);
                 break;
             case 'Exit':
                 console.log('Exiting...');
