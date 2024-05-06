@@ -23,7 +23,7 @@ function displayMenu() {
             case 'Parser':
                 await runWithProgressBar(parser);
                 break;
-            case 'Search path':
+            case 'Search Path':
                 terminal(`Please enter startTable:\n`);
                 let startTable = await terminal.inputField().promise;
                 terminal('\n');
