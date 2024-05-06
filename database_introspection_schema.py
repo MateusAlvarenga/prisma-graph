@@ -1,6 +1,9 @@
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine
+from inspect import inspect
 import enum
 import json
+from dotenv import load_dotenv
+import os
 
 
 class FieldType(enum.Enum):
@@ -10,7 +13,7 @@ class FieldType(enum.Enum):
     ACTION_INSTANCE = "action_instance"
 
 
-def build_json_schema(columns):
+def build_json_schema(columns, table_name, inspector):
     schema = {
         "name": table_name,
         "fields": []
@@ -33,10 +36,14 @@ def introspect_all_tables(engine):
     inspector = inspect(engine)
     for table_name in inspector.get_table_names():
         columns = inspector.get_columns(table_name)
-        json_schema = build_json_schema(columns)
+        json_schema = build_json_schema(columns, table_name, inspector)
         with open(f"{table_name}.json", "w") as outfile:
             json.dump(json_schema, outfile, indent=4)
         print(f"JSON schema for table {table_name} saved to {table_name}.json")
 
+
+load_dotenv()
+database_url = os.environ["DATABASE_URL"]
+engine = create_engine(database_url)
 
 introspect_all_tables(engine)
