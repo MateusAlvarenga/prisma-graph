@@ -7,6 +7,16 @@ const graph = createGraph();
 
 function mountGraph(startTable, endTable) {
 
+    //validate if the tables are in the graph
+
+    if (!schema.find(model => model.name === startTable)) {
+        throw new Error(`Table ${startTable} not found in schema`);
+    }
+
+    if (!schema.find(model => model.name === endTable)) {
+        throw new Error(`Table ${endTable} not found in schema`);
+    }
+
     schema.forEach(model => {
         const modelName = model.name;
         graph.addNode(modelName);
@@ -32,29 +42,30 @@ function mountGraph(startTable, endTable) {
     });
 
     function buildSqlStatement(startTable, endTable, shortestPath, schema) {
-
-        let tables_to_join = shortestPath.slice(1);
-        let tables_to_join_id = tables_to_join.map((node) => node.id);
+        let tablesToJoin = shortestPath.slice(1);
+        let tablesToJoinId = tablesToJoin.map((node) => node.id);
         let sqlStatement = `SELECT * FROM ${startTable}`;
         let currentTable = startTable;
-
-        tables_to_join_id.forEach((table_id) => {
-
-            let link = graph.getLink(table_id, currentTable);
+        tablesToJoinId.forEach((tableId) => {
+            let link = graph.getLink(tableId, currentTable);
             if (link) {
                 let field = link.data.field;
-                sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.fields} = ${currentTable}.${field.relation.references}`;
+                let joinFields = field.relation.fields.split(", ").map((f) => `${tableId}.${f}`);
+                let refFields = field.relation.references.split(", ").map((f) => `${currentTable}.${f}`);
+                sqlStatement += ` JOIN ${tableId} ON ${joinFields.join(' AND ')} = ${refFields.join(' AND ')}`;
             } else {
-                link = graph.getLink(currentTable, table_id);
+                link = graph.getLink(currentTable, tableId);
                 if (link) {
                     let field = link.data.field;
-                    sqlStatement += ` JOIN ${table_id} ON  ${table_id}.${field.relation.references} = ${currentTable}.${field.relation.fields}`;
+                    let joinFields = field.relation.references.split(", ").map((f) => `${currentTable}.${f}`);
+                    let refFields = field.relation.fields.split(", ").map((f) => `${tableId}.${f}`);
+                    sqlStatement += ` JOIN ${tableId} ON ${joinFields.join(' AND ')} = ${refFields.join(' AND ')}`;
                 } else {
-                    throw new Error(`Link not found between ${table_id} and ${currentTable}`);
+                    throw new Error(`Link not found between ${tableId} and ${currentTable}`);
                 }
             }
 
-            currentTable = table_id;
+            currentTable = tableId;
         });
 
 
@@ -62,16 +73,27 @@ function mountGraph(startTable, endTable) {
         return sqlStatement.trim();
     }
 
+    //validate if the tables are in the graph
+
+    if (!graph.hasNode(startTable)) {
+        throw new Error(`Table ${startTable} not found in schema`);
+    }
+
+    if (!graph.hasNode(endTable)) {
+        throw new Error(`Table ${endTable} not found in schema`);
+    }
+
     const pathFinderInstance = pathFinder.aStar(graph);
     const shortestPath = pathFinderInstance.find(endTable, startTable);
-    console.log("Shortest Path Nodes: ");
-    shortestPath.forEach(node => {
-        console.log(node.id);
-        node.links.forEach(link => {
-            console.log(link);
-            console.log(link.data.field.relation)
-        });
-    });
+    console.log("\nShortest Path Nodes:" + shortestPath.map((node) => node.id).join(" ->"));
+    //console.log("Shortest Path Nodes: ");
+    // shortestPath.forEach(node => {
+    //     //console.log(node.id);
+    //     node.links.forEach(link => {
+    //         console.log(link.id);
+    //         //console.log(link.data.field.relation)
+    //     });
+    // });
 
     if (shortestPath.length === 0) {
         throw new Error(`Unreachable: No path found between ${startTable} and ${endTable}`);

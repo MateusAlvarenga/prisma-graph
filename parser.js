@@ -21,6 +21,11 @@ function parser() {
             if (!knownTypes.includes(type) && field.includes('@relation')) {
                 let fields = field.match(fieldRegex);
                 let references = field.match(referencesRegex);
+
+                if (!fields || field.name === '' || (field.name && field.name.startsWith('@')) || !references) {
+                    return null;
+                }
+
                 let relation = {
                     fields: fields[1],
                     references: references[1]
@@ -34,7 +39,7 @@ function parser() {
                 return { name, type };
             }
 
-        }).filter(field => field.name !== '' && !field.name.startsWith('@'));
+        }).filter(field => field != null)
 
         models.push({ name: modelName, fields: modelFields });
     }

@@ -5,7 +5,7 @@ const readline = require('readline');
 
 const options = [
     'Parser',
-    'Graph',
+    'Search',
     'Exit'
 ];
 
@@ -20,7 +20,7 @@ function displayMenu() {
             case 'Parser':
                 await runWithProgressBar(parser);
                 break;
-            case 'Graph':
+            case 'Search':
                 terminal(`Please enter startTable:\n`);
                 let startTable = await terminal.inputField().promise;
                 terminal('\n');
