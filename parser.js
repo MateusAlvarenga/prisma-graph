@@ -45,6 +45,8 @@ function parser() {
     }
 
     fs.writeFileSync('schema.json', JSON.stringify(models, null, 2));
+
+    return "Schema parsed successfully! \n\nSchema saved in schema.json file. \n";
 }
 
 module.exports = parser;

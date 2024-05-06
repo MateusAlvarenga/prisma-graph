@@ -50,7 +50,10 @@ async function runWithProgressBar(callback) {
     });
 
     try {
-        await callback();
+        //await callback();
+
+        const response = await callback();
+        console.log(response);
         // await pauseForEnter();
     } finally {
         progressBar.stop();
