@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
-from inspect import inspect
+from sqlalchemy import inspect
+from dotenv import load_dotenv
+import pymysql
 import enum
 import json
-from dotenv import load_dotenv
 import os
 
 
@@ -21,7 +22,7 @@ def build_json_schema(columns, table_name, inspector):
     for column in columns:
         field_schema = {
             "name": column["name"],
-            "type": FieldType[column["type"].__name__].value,
+            "type": str(column["type"]).upper(),
         }
         if "foreign_keys" in column:
             field_schema["relation"] = {
